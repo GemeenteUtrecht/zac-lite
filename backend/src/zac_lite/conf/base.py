@@ -78,6 +78,14 @@ CACHES = {
             "IGNORE_EXCEPTIONS": True,
         },
     },
+    "oas": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://{config('CACHE_OAS', 'localhost:6379/1')}",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
+        },
+    },
 }
 
 
@@ -90,23 +98,24 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "django.contrib.sessions",
-    # NOTE: If enabled, at least one Site object is required and
-    # uncomment SITE_ID above.
-    # 'django.contrib.sites',
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # Optional applications.
-    "ordered_model",
     "django_admin_index",
     "django.contrib.admin",
-    # 'django.contrib.admindocs',
-    # 'django.contrib.humanize',
-    # 'django.contrib.sitemaps',
     # External applications.
+    "django_auth_adfs",
+    "django_auth_adfs_db",
+    "ordered_model",  # part of django-admin-index
+    "solo",  # part of zgw-consumers
     "axes",
     "compat",  # Part of hijack
     "hijack",
     "hijack_admin",
+    "zgw_consumers",
+    "django_camunda",
+    "rest_framework",
+    "rest_framework.authtoken",
+    "drf_spectacular",
     # Project applications.
     "zac_lite.accounts",
     "zac_lite.utils",
@@ -191,7 +200,9 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=False)
 EMAIL_TIMEOUT = 10
 
-DEFAULT_FROM_EMAIL = "zac_lite@example.com"
+DEFAULT_FROM_EMAIL = config(
+    "DEFAULT_FROM_EMAIL", default="root@zac-lite.utrechtproeftuin.nl"
+)
 
 #
 # LOGGING
@@ -293,12 +304,15 @@ AUTH_PASSWORD_VALIDATORS = [
 # Allow logging in with both username+password and email+password
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesBackend",
+    # authentication
+    "django_auth_adfs_db.backends.AdfsAuthCodeBackend",
     "zac_lite.accounts.backends.UserModelEmailBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
 
 SESSION_COOKIE_NAME = "zac_lite_sessionid"
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "sessions"
 
 LOGIN_URL = reverse_lazy("admin:login")
 LOGIN_REDIRECT_URL = reverse_lazy("admin:index")
@@ -323,7 +337,7 @@ FIXTURE_DIRS = (os.path.join(DJANGO_PROJECT_DIR, "fixtures"),)
 #
 # Custom settings
 #
-PROJECT_NAME = "zac_lite"
+PROJECT_NAME = "ZAC Lite"
 ENVIRONMENT = config("ENVIRONMENT", "")
 SHOW_ALERT = True
 
@@ -384,6 +398,63 @@ HIJACK_REGISTER_ADMIN = False
 # This is a CSRF-security risk.
 # See: http://django-hijack.readthedocs.io/en/latest/configuration/#allowing-get-method-for-hijack-views
 HIJACK_ALLOW_GET_REQUESTS = True
+
+#
+# DJANGO AUTH ADFS
+#
+AUTH_ADFS = {"SETTINGS_CLASS": "django_auth_adfs_db.settings.Settings"}
+
+#
+# DRF
+#
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
+    ),
+    "DEFAULT_RENDERER_CLASSES": (
+        "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    # "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
+    "TEST_REQUEST_DEFAULT_FORMAT": "json",
+    "DEFAULT_SCHEMA_CLASS": "zac_lite.api.schema.AutoSchema",
+}
+
+#
+# DRF-SPECTACULAR
+#
+SPECTACULAR_SETTINGS = {
+    "SCHEMA_PATH_PREFIX": r"/api",
+    "TITLE": "ZAC Lite BFF",
+    "DESCRIPTION": "Internal backend-for-frontend API documentation.",
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.hooks.postprocess_schema_enums",
+        "drf_spectacular.contrib.djangorestframework_camel_case.camelize_serializer_fields",
+    ],
+    "TOS": None,
+    # Optional: MAY contain "name", "url", "email"
+    "CONTACT": {
+        "url": "https://github.com/GemeenteUtrecht/zac-lite",
+    },
+    # Optional: MUST contain "name", MAY contain URL
+    "LICENSE": {"name": "EUPL-1.2"},
+    "VERSION": "0.1.0",
+    # Tags defined in the global scope
+    "TAGS": [],
+    # Optional: MUST contain 'url', may contain "description"
+    "EXTERNAL_DOCS": {
+        "url": "https://zac-lite.readthedocs.io/",
+    },
+}
+
+#
+# ZGW-CONSUMERS
+#
+ZGW_CONSUMERS_CLIENT_CLASS = "zgw_consumers.client.NLXClient"
+ZGW_CONSUMERS_TEST_SCHEMA_DIRS = [
+    os.path.join(DJANGO_PROJECT_DIR, "tests", "schemas"),
+]
 
 #
 # SENTRY - error monitoring

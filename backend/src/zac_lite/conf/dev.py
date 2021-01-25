@@ -64,6 +64,7 @@ LOGGING["loggers"].update(
 CACHES = {
     "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
     "axes": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"},
+    "sessions": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
 }
 
 #
