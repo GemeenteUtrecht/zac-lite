@@ -1,0 +1,44 @@
+name: Code quality checks
+
+# Run this workflow every time a new commit pushed to your repository
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+    paths:
+      - 'backend/**.py'
+  pull_request:
+    paths:
+      - 'backend/**.py'
+  workflow_dispatch:
+
+jobs:
+  isort:
+    name: Check import sorting
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Install dependencies
+        run: pip install -r backend/requirements/ci.txt
+      - name: Run isort
+        run: isort --check-only --diff backend/src backend/doc
+
+  black:
+    name: Check code formatting with black
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Install dependencies
+        run: pip install -r backend/requirements/ci.txt
+      - name: Run black
+        run: black --check backend/src backend/doc
