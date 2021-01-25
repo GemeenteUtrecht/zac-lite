@@ -1,0 +1,97 @@
+[
+{
+    "model": "admin_index.appgroup",
+    "fields": {
+        "order": 0,
+        "name": "Accounts",
+        "slug": "accounts",
+        "models": [
+            [
+                "accounts",
+                "user"
+            ],
+            [
+                "auth",
+                "group"
+            ],
+            [
+                "authtoken",
+                "token"
+            ]
+        ]
+    }
+},
+{
+    "model": "admin_index.appgroup",
+    "fields": {
+        "order": 1,
+        "name": "Configuratie",
+        "slug": "config",
+        "models": [
+            [
+                "admin_index",
+                "appgroup"
+            ],
+            [
+                "django_auth_adfs_db",
+                "adfsconfig"
+            ],
+            [
+                "django_camunda",
+                "camundaconfig"
+            ],
+            [
+                "zgw_consumers",
+                "nlxconfig"
+            ],
+            [
+                "zgw_consumers",
+                "service"
+            ]
+        ]
+    }
+},
+{
+    "model": "admin_index.appgroup",
+    "fields": {
+        "order": 3,
+        "name": "Logging",
+        "slug": "Logs",
+        "models": [
+            [
+                "axes",
+                "accessattempt"
+            ],
+            [
+                "axes",
+                "accesslog"
+            ]
+        ]
+    }
+},
+{
+    "model": "admin_index.appgroup",
+    "fields": {
+        "order": 4,
+        "name": "Autorisatietoken",
+        "slug": "authtoken",
+        "models": [
+            [
+                "authtoken",
+                "tokenproxy"
+            ]
+        ]
+    }
+},
+{
+    "model": "admin_index.applink",
+    "fields": {
+        "order": 0,
+        "app_group": [
+            "config"
+        ],
+        "name": "API Docs",
+        "link": "/api/docs"
+    }
+}
+]

@@ -35,6 +35,8 @@ urlpatterns = [
         auth_views.PasswordResetCompleteView.as_view(),
         name="password_reset_complete",
     ),
+    path("adfs/", include("django_auth_adfs.urls")),
+    path("api/", include("zac_lite.api.urls")),
     # Simply show the master template.
     path("", TemplateView.as_view(template_name="master.html")),
 ]
