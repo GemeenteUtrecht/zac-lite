@@ -7,14 +7,19 @@ python-decouple  # processing of envvar configs
 # Framework libraries
 django~=2.2.0
 django-admin-index
+django-auth-adfs-db
 django-axes
+django-camunda
 django-choices
 django-hijack
 django-hijack-admin
+django-privates
 django-redis
+zgw-consumers
 
 # API libraries
 djangorestframework
+djangorestframework-camel-case
 # django-extra-fields
 # django-filter
 drf-spectacular  # api documentation
