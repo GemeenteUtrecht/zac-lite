@@ -1,0 +1,25 @@
+# Core python libraries
+psycopg2  # database driver
+pytz  # handle timezones
+python-dotenv  # environment variables for secrets
+python-decouple  # processing of envvar configs
+
+# Framework libraries
+django~=2.2.0
+django-admin-index
+django-axes
+django-choices
+django-hijack
+django-hijack-admin
+django-redis
+
+# API libraries
+djangorestframework
+# django-extra-fields
+# django-filter
+drf-spectacular  # api documentation
+
+# WSGI servers & monitoring - production oriented
+uwsgi
+sentry-sdk  # error monitoring
+elastic-apm  # Elastic APM integration

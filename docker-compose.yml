@@ -1,0 +1,40 @@
+# This docker-compose configuration is aimed at DEVELOPMENT. It is not suitable
+# for production at all.
+version: '3.8'
+
+services:
+  # backend
+  db:
+    image: postgres:12
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust  # do not use this in production!
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/docker/initdb/:/docker-entrypoint-initdb.d/:ro
+
+  redis:
+    image: redis:6
+
+  backend:
+    image: scrumteamzgw/zac-lite:${TAG:-latest}
+    build: ./backend
+    environment:
+      - DJANGO_SETTINGS_MODULE=zac_lite.conf.docker
+      - SECRET_KEY=${SECRET_KEY:-changeme}
+      - IS_HTTPS=0
+      - ALLOWED_HOSTS=localhost,backend
+      - REDIS_HOST=redis
+      - CACHE_DEFAULT=redis:6379/0
+      - CACHE_AXES=redis:6379/0
+      - CACHE_OAS=redis:6379/1
+      - CACHE_SESSIONS=redis:6379/1
+      - CORS_HEADERS_ENABLED=True
+    # expose backend port for frontend development
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:

@@ -1,0 +1,3 @@
+CREATE USER zac_lite;
+CREATE DATABASE zac_lite;
+GRANT ALL PRIVILEGES ON DATABASE zac_lite TO zac_lite;

@@ -1,0 +1,10 @@
+SECRET_KEY="hfz%gy_6@%$1p2bl$fkiz76)_depel)fve@a8ely0x8s$wfesa"
+DB_NAME="zac_lite"
+DB_USER="zac_lite"
+#
+# For peer authentication via unix domain socket
+# these should be kept empty.
+#
+DB_PASSWORD=""
+DB_HOST=""
+DB_PORT=""
