@@ -84,7 +84,7 @@ django-auth-adfs==1.5.0
     #   django-auth-adfs-db
 django-axes==5.12.0
     # via -r requirements/base.txt
-django-camunda==0.9.6
+django-camunda==0.10.0
     # via -r requirements/base.txt
 django-choices==1.7.1
     # via
