@@ -433,7 +433,7 @@ REST_FRAMEWORK = {
 # DRF-SPECTACULAR
 #
 SPECTACULAR_SETTINGS = {
-    "SCHEMA_PATH_PREFIX": r"/api",
+    "SCHEMA_PATH_PREFIX": r"/api/v1",
     "TITLE": "ZAC Lite BFF",
     "DESCRIPTION": "Internal backend-for-frontend API documentation.",
     "POSTPROCESSING_HOOKS": [
