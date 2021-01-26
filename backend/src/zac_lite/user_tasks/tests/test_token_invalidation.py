@@ -41,7 +41,7 @@ class TokenInvalidationTests(SimpleTestCase):
         task = factory(Task, TASK_DATA)
         token = token_generator.make_token(task)
 
-        for day in range(7):
+        for day in range(8):
             with self.subTest(day_offset=day):
                 with freeze_time(timedelta(days=day)):
                     valid = token_generator.check_token(task, token)
@@ -52,7 +52,41 @@ class TokenInvalidationTests(SimpleTestCase):
         task = factory(Task, TASK_DATA)
         token = token_generator.make_token(task)
 
-        with freeze_time(timedelta(days=7)):
+        with freeze_time(timedelta(days=8)):
             valid = token_generator.check_token(task, token)
+
+        self.assertFalse(valid)
+
+    def test_token_invalidated_properties_changed(self):
+        task = factory(Task, TASK_DATA)
+        token = token_generator.make_token(task)
+
+        changed_props = {
+            "assignee": "otherAssignee",
+            "due": "2013-01-25T11:49:42.576+0200",
+            "delegation_state": "PENDING",
+            "owner": "anotherOwner",
+            "suspended": True,
+            "form_key": "anotherFormKey",
+        }
+        for prop, new_value in changed_props.items():
+            with self.subTest(changed_prop=prop):
+                changed_task = factory(Task, {**TASK_DATA, prop: new_value})
+
+                valid = token_generator.check_token(changed_task, token)
+
+                self.assertFalse(valid)
+
+    def test_wrong_format_token(self):
+        task = factory(Task, TASK_DATA)
+
+        valid = token_generator.check_token(task, "dummy")
+
+        self.assertFalse(valid)
+
+    def test_invalid_timestamp_b36(self):
+        task = factory(Task, TASK_DATA)
+
+        valid = token_generator.check_token(task, "$$$-blegh")
 
         self.assertFalse(valid)
