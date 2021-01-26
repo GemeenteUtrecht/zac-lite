@@ -1,8 +1,8 @@
 from datetime import date
 
 from django.conf import settings
-from django.utils.crypto import salted_hmac
-from django.utils.http import int_to_base36
+from django.utils.crypto import constant_time_compare, salted_hmac
+from django.utils.http import base36_to_int, int_to_base36
 
 from django_camunda.camunda_models import Task
 
@@ -29,7 +29,36 @@ class ExecuteTaskTokenGenerator:
         """
         Check that the execute task token is correct for a given task.
         """
-        raise NotImplementedError
+        if not (task and token):
+            return False
+
+        # parse the token
+        try:
+            ts_b36, _ = token.split("-")
+        except ValueError:
+            return False
+
+        try:
+            ts = base36_to_int(ts_b36)
+        except ValueError:
+            return False
+
+        # Check that the timestamp/uid has not been tampered with
+        valid_token = self._make_token_with_timestamp(task, ts)
+        if not constant_time_compare(valid_token, token):
+            return False
+
+        # Check the timestamp is within limit. Timestamps are rounded to
+        # midnight (server time) providing a resolution of only 1 day. If a
+        # link is generated 5 minutes before midnight and used 6 minutes later,
+        # that counts as 1 day. Therefore, EXECUTE_TASK_TOKEN_TIMEOUT_DAYS = 1 means
+        # "at least 1 day, could be up to 2."
+        if (
+            self._num_days(date.today()) - ts
+        ) > settings.EXECUTE_TASK_TOKEN_TIMEOUT_DAYS:
+            return False
+
+        return True
 
     def _make_token_with_timestamp(self, task: Task, timestamp: int) -> str:
         # timestamp is number of days since 2001-1-1.  Converted to
