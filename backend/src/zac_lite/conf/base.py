@@ -341,6 +341,11 @@ PROJECT_NAME = "ZAC Lite"
 ENVIRONMENT = config("ENVIRONMENT", "")
 SHOW_ALERT = True
 
+#
+# EXECUTE TASK TOKEN INVALIDATION
+#
+EXECUTE_TASK_TOKEN_TIMEOUT_DAYS = config("EXECUTE_TASK_TOKEN_TIMEOUT_DAYS", default=7)
+
 ##############################
 #                            #
 # 3RD PARTY LIBRARY SETTINGS #
