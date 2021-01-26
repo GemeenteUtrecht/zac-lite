@@ -25,6 +25,12 @@ class ExecuteTaskTokenGenerator:
         """
         return self._make_token_with_timestamp(task, self._num_days(date.today()))
 
+    def check_token(self, task: Task, token: str) -> bool:
+        """
+        Check that the execute task token is correct for a given task.
+        """
+        raise NotImplementedError
+
     def _make_token_with_timestamp(self, task: Task, timestamp: int) -> str:
         # timestamp is number of days since 2001-1-1.  Converted to
         # base 36, this gives us a 3 digit string until about 2121
