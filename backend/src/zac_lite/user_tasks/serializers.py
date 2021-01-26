@@ -1,37 +1,14 @@
-from dataclasses import dataclass
 from typing import Optional
 from uuid import UUID
 
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import gettext_lazy as _
 
 from django_camunda.api import get_task
 from django_camunda.camunda_models import Task
 from rest_framework import serializers
-from rest_framework.request import Request
+from zgw_consumers.drf.serializers import APIModelSerializer
 
-from .tokens import token_generator
-
-FRONTEND_URL = "/ui/perform-task/{tidb64}/{token}"
-
-
-@dataclass
-class UserTaskLink:
-    request: Request
-    task: Optional[Task] = None
-
-    @property
-    def task_id(self):
-        return self.task.id
-
-    @property
-    def url(self):
-        assert self.task is not None, "Expected task to be validated and resolved"
-        tidb64 = urlsafe_base64_encode(force_bytes(self.task.id))
-        token = token_generator.make_token(self.task)
-        ui_path = FRONTEND_URL.format(tidb64=tidb64, token=token)
-        return self.request.build_absolute_uri(ui_path)
+from .data import UserTaskData
 
 
 class UserLinkSerializer(serializers.Serializer):
@@ -64,3 +41,26 @@ class UserLinkSerializer(serializers.Serializer):
             )
         self.instance.task = task
         return value
+
+
+class TaskSerializer(APIModelSerializer):
+    class Meta:
+        model = Task
+        fields = ("id", "name", "assignee", "created")
+
+
+class UserTaskConfigurationSerializer(APIModelSerializer):
+    form = serializers.CharField(
+        label=_("Form to render"),
+        source="task.form_key",
+        help_text=_("The form key of the form to render."),
+    )
+    task = TaskSerializer()
+
+    class Meta:
+        model = UserTaskData
+        fields = (
+            "form",
+            "task",
+            "context",
+        )

@@ -118,6 +118,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     # Project applications.
     "zac_lite.accounts",
+    "zac_lite.user_tasks",
     "zac_lite.utils",
 ]
 
