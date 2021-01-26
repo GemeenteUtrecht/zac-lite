@@ -12,8 +12,12 @@ urlpatterns = [
     path("schema", SpectacularAPIView.as_view(schema=None), name="api-schema"),
     path("docs/", SpectacularRedocView.as_view(url_name="api-schema"), name="api-docs"),
     # actual API endpoints
-    # TODO
-    # path("v1/", include([
-    #     path("task/<str:task_id>", TaskDetailView.as_view(), name="task-detail"),
-    # ])),
+    path(
+        "v1/",
+        include(
+            [
+                path("", include("zac_lite.user_tasks.urls")),
+            ]
+        ),
+    ),
 ]
