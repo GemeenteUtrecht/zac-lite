@@ -1,11 +1,17 @@
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
 from django.utils.translation import gettext_lazy as _
 
+from django_camunda.api import get_task
 from django_camunda.camunda_models import Task
-from rest_framework import status
+from drf_spectacular.utils import extend_schema
+from rest_framework import exceptions, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from zac_lite.api.serializers import ErrorSerializer
 
 from .data import UserTaskData, UserTaskLink
 from .permissions import TokenIsValid
@@ -52,12 +58,29 @@ class GetTaskConfigurationView(APIView):
     permission_classes = (TokenIsValid,)
     serializer_class = UserTaskConfigurationSerializer
 
-    task: Task = None  # set by the :class:`TokenIsValid` permission class
-
+    @extend_schema(
+        responses={
+            200: UserTaskConfigurationSerializer,
+            403: ErrorSerializer,
+            404: ErrorSerializer,
+        }
+    )
     def get(self, request: Request, tidb64: str, token: str):
-        task_data = UserTaskData(task=self.task, context={"foo": "bar"})
+        task = self.get_object()
+        task_data = UserTaskData(task=task, context={"foo": "bar"})
         serializer = self.serializer_class(
             instance=task_data,
             context={"request": request, "view": self},
         )
         return Response(serializer.data)
+
+    def get_object(self) -> Task:
+        task_id = force_str(urlsafe_base64_decode(self.kwargs["tidb64"]))
+        task = get_task(task_id, check_history=False)
+        if task is None:
+            raise exceptions.NotFound(
+                _("The task with given task ID does not exist (anymore).")
+            )
+        # May raise a permission denied
+        self.check_object_permissions(self.request, task)
+        return task
