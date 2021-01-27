@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 
 from zac_lite.api.serializers import ErrorSerializer
 
+from .context import get_context
 from .data import UserTaskData, UserTaskLink
 from .permissions import TokenIsValid
 from .serializers import UserLinkSerializer, UserTaskConfigurationSerializer
@@ -67,7 +68,7 @@ class GetTaskConfigurationView(APIView):
     )
     def get(self, request: Request, tidb64: str, token: str):
         task = self.get_object()
-        task_data = UserTaskData(task=task, context={"foo": "bar"})
+        task_data = UserTaskData(task=task, context=get_context(task))
         serializer = self.serializer_class(
             instance=task_data,
             context={"request": request, "view": self},

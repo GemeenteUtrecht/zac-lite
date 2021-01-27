@@ -7,9 +7,13 @@ from django.utils.translation import gettext_lazy as _
 from django_camunda.api import get_task
 from django_camunda.camunda_models import Task
 from rest_framework import serializers
+from zgw_consumers.api_models.catalogi import InformatieObjectType, ZaakType
+from zgw_consumers.api_models.documenten import Document
+from zgw_consumers.api_models.zaken import Zaak
 from zgw_consumers.drf.serializers import APIModelSerializer
 
 from .data import UserTaskData
+from .zaak_documents import ZaakDocumentsContext
 
 
 class UserLinkSerializer(serializers.Serializer):
@@ -51,8 +55,66 @@ class TaskSerializer(APIModelSerializer):
         extra_kwargs = {
             "created": {
                 "default_timezone": timezone.utc,
-            }
+            },
+            "assignee": {
+                "allow_null": True,
+            },
         }
+
+
+class ZaaktypeSerializer(APIModelSerializer):
+    class Meta:
+        model = ZaakType
+        fields = ("omschrijving",)
+
+
+class ZaakSerializer(APIModelSerializer):
+    zaaktype = ZaaktypeSerializer()
+
+    class Meta:
+        model = Zaak
+        fields = ("identificatie", "zaaktype")
+
+
+class DocumentSerializer(APIModelSerializer):
+    class Meta:
+        model = Document
+        fields = (
+            "url",
+            "title",
+            "size",
+            "document_type",
+        )
+        extra_kwargs = {
+            "title": {"source": "titel"},
+            "size": {
+                "source": "bestandsomvang",
+                "help_text": _("File size in bytes"),
+            },
+            "document_type": {
+                "source": "informatieobjecttype",
+                "help_text": _("URL to the informatieobjecttype API resource"),
+            },
+        }
+
+
+class DocumentTypeSerializer(APIModelSerializer):
+    class Meta:
+        model = InformatieObjectType
+        fields = (
+            "url",
+            "omschrijving",
+        )
+
+
+class ZaakDocumentsContextSerializer(APIModelSerializer):
+    zaak = ZaakSerializer()
+    documents = DocumentSerializer(many=True)
+    document_types = DocumentTypeSerializer(many=True)
+
+    class Meta:
+        model = ZaakDocumentsContext
+        fields = ("zaak", "documents", "document_types", "toelichtingen")
 
 
 class UserTaskConfigurationSerializer(APIModelSerializer):
@@ -61,7 +123,15 @@ class UserTaskConfigurationSerializer(APIModelSerializer):
         source="task.form_key",
         help_text=_("The form key of the form to render."),
     )
-    task = TaskSerializer()
+    task = TaskSerializer(label=_("User task summary"))
+    context = ZaakDocumentsContextSerializer(
+        label=_("User task context"),
+        help_text=_(
+            "The task context shape depends on the `form` property. The value will be "
+            "`null` if the backend does not 'know' the user task `formKey`."
+        ),
+        allow_null=True,
+    )
 
     class Meta:
         model = UserTaskData
