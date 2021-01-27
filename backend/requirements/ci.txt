@@ -8,6 +8,8 @@ amqp==5.0.3
     # via
     #   -r requirements/base.txt
     #   kombu
+appdirs==1.4.4
+    # via black
 astroid==2.4.2
     # via pylint
 attrs==20.3.0
@@ -20,6 +22,8 @@ billiard==3.6.3.0
     # via
     #   -r requirements/base.txt
     #   celery
+black==20.8b1
+    # via -r requirements/test-tools.in
 celery==5.0.5
     # via
     #   -r requirements/base.txt
@@ -53,6 +57,7 @@ click-repl==0.1.6
 click==7.1.2
     # via
     #   -r requirements/base.txt
+    #   black
     #   celery
     #   click-didyoumean
     #   click-plugins
@@ -79,7 +84,7 @@ django-auth-adfs==1.5.0
     #   django-auth-adfs-db
 django-axes==5.12.0
     # via -r requirements/base.txt
-django-camunda==0.9.6
+django-camunda==0.10.0
     # via -r requirements/base.txt
 django-choices==1.7.1
     # via
@@ -159,6 +164,8 @@ faker==5.7.0
     #   -r requirements/base.txt
     #   factory-boy
     #   zgw-consumers
+flake8==3.8.4
+    # via -r requirements/test-tools.in
 freezegun==1.1.0
     # via -r requirements/test-tools.in
 gemma-zds-client==0.13.4
@@ -175,7 +182,9 @@ inflection==0.5.1
     #   django-camunda
     #   drf-spectacular
 isort==5.7.0
-    # via pylint
+    # via
+    #   -r requirements/test-tools.in
+    #   pylint
 jsonschema==3.2.0
     # via
     #   -r requirements/base.txt
@@ -189,7 +198,13 @@ lazy-object-proxy==1.4.3
 lxml==4.6.2
     # via pyquery
 mccabe==0.6.1
-    # via pylint
+    # via
+    #   flake8
+    #   pylint
+mypy-extensions==0.4.3
+    # via black
+pathspec==0.8.1
+    # via black
 pep8==1.7.1
     # via -r requirements/test-tools.in
 prompt-toolkit==3.0.14
@@ -198,10 +213,14 @@ prompt-toolkit==3.0.14
     #   click-repl
 psycopg2==2.8.6
     # via -r requirements/base.txt
+pycodestyle==2.6.0
+    # via flake8
 pycparser==2.20
     # via
     #   -r requirements/base.txt
     #   cffi
+pyflakes==2.2.0
+    # via flake8
 pyjwt==2.0.1
     # via
     #   -r requirements/base.txt
@@ -240,6 +259,8 @@ redis==3.5.3
     # via
     #   -r requirements/base.txt
     #   django-redis
+regex==2020.11.13
+    # via black
 requests-mock==1.8.0
     # via
     #   -r requirements/base.txt
@@ -280,7 +301,13 @@ text-unidecode==1.3
     #   -r requirements/base.txt
     #   faker
 toml==0.10.2
-    # via pylint
+    # via
+    #   black
+    #   pylint
+typed-ast==1.4.2
+    # via black
+typing-extensions==3.7.4.3
+    # via black
 uritemplate==3.0.1
     # via
     #   -r requirements/base.txt

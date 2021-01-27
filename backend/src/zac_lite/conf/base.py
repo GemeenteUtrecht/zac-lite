@@ -341,6 +341,11 @@ PROJECT_NAME = "ZAC Lite"
 ENVIRONMENT = config("ENVIRONMENT", "")
 SHOW_ALERT = True
 
+#
+# EXECUTE TASK TOKEN INVALIDATION
+#
+EXECUTE_TASK_TOKEN_TIMEOUT_DAYS = config("EXECUTE_TASK_TOKEN_TIMEOUT_DAYS", default=7)
+
 ##############################
 #                            #
 # 3RD PARTY LIBRARY SETTINGS #
@@ -415,6 +420,9 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": (
         "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
     ),
+    "DEFAULT_PARSER_CLASSES": (
+        "djangorestframework_camel_case.parser.CamelCaseJSONParser",
+    ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     # "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
@@ -425,7 +433,7 @@ REST_FRAMEWORK = {
 # DRF-SPECTACULAR
 #
 SPECTACULAR_SETTINGS = {
-    "SCHEMA_PATH_PREFIX": r"/api",
+    "SCHEMA_PATH_PREFIX": r"/api/v1",
     "TITLE": "ZAC Lite BFF",
     "DESCRIPTION": "Internal backend-for-frontend API documentation.",
     "POSTPROCESSING_HOOKS": [

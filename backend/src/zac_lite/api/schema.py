@@ -23,3 +23,7 @@ class AutoSchema(_AutoSchema):
             return request_body
 
         return super()._get_request_body()
+
+    def get_summary(self):
+        cls = self.view.__class__
+        return getattr(cls, "schema_summary", None)
