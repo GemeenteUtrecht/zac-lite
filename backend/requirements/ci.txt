@@ -168,7 +168,7 @@ flake8==3.8.4
     # via -r requirements/test-tools.in
 freezegun==1.1.0
     # via -r requirements/test-tools.in
-gemma-zds-client==0.13.4
+gemma-zds-client==0.14.0
     # via
     #   -r requirements/base.txt
     #   zgw-consumers
@@ -337,7 +337,7 @@ webtest==2.0.35
     # via django-webtest
 wrapt==1.12.1
     # via astroid
-zgw-consumers==0.15.1
+zgw-consumers==0.15.2
     # via -r requirements/base.txt
 
 # The following packages are considered to be unsafe in a requirements file:
