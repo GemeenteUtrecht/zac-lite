@@ -1,10 +1,11 @@
+from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 import requests_mock
 from django_camunda.camunda_models import Task, factory
 from django_camunda.utils import underscoreize
 from rest_framework import status
-from rest_framework.reverse import reverse, reverse_lazy
+from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 
 from ..tokens import token_generator
@@ -33,6 +34,12 @@ TASK_DATA = {
     "formKey": "aFormKey",
     "tenantId": "aTenantId",
 }
+
+
+def get_endpoint(task: Task):
+    tidb64 = urlsafe_base64_encode(force_bytes(task.id))
+    token = token_generator.make_token(task)
+    return reverse("task-data-detail", kwargs={"tidb64": tidb64, "token": token})
 
 
 class GetTaskDataTests(APITestCase):
@@ -83,3 +90,37 @@ class GetTaskDataTests(APITestCase):
             m.last_request.url,
             "https://camunda.example.com/engine-rest/task/598347ee-62fc-46a2-913a-6e0788bc1b8c",
         )
+
+
+class ZaakDocumentsFormKeyTests(APITestCase):
+    """
+    Test the endpoint behaviour specifically for the zac-lite:zaak-documents form key.
+    """
+
+    def test_valid_response(self):
+        task_data = {**TASK_DATA, "formKey": "zac-lite:zaak-documents"}
+        task = factory(Task, underscoreize(task_data))
+        endpoint = get_endpoint(task)
+
+        with requests_mock.Mocker() as m:
+            m.get(
+                "https://camunda.example.com/engine-rest/task/598347ee-62fc-46a2-913a-6e0788bc1b8c",
+                json=task_data,
+            )
+            response = self.client.get(endpoint)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response_data = response.json()
+        expected = {
+            "form": "zac-lite:zaak-documents",
+            "task": {
+                "id": "598347ee-62fc-46a2-913a-6e0788bc1b8c",
+                "name": "aName",
+                "assignee": "anAssignee",
+                "created": "2013-01-23T11:42:42Z",
+            },
+            "context": {
+                "foo": "bar",
+            },
+        }
+        self.assertEqual(response_data, expected)

@@ -1,6 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from django_camunda.api import get_task
@@ -47,6 +48,11 @@ class TaskSerializer(APIModelSerializer):
     class Meta:
         model = Task
         fields = ("id", "name", "assignee", "created")
+        extra_kwargs = {
+            "created": {
+                "default_timezone": timezone.utc,
+            }
+        }
 
 
 class UserTaskConfigurationSerializer(APIModelSerializer):
