@@ -460,7 +460,7 @@ SPECTACULAR_SETTINGS = {
 #
 # ZGW-CONSUMERS
 #
-ZGW_CONSUMERS_CLIENT_CLASS = "zgw_consumers.client.NLXClient"
+ZGW_CONSUMERS_CLIENT_CLASS = "zac_lite.client.NLXClient"
 ZGW_CONSUMERS_TEST_SCHEMA_DIRS = [
     os.path.join(DJANGO_PROJECT_DIR, "tests", "schemas"),
 ]

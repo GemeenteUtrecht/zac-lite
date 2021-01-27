@@ -8,6 +8,7 @@ from django_camunda.camunda_models import Task
 from rest_framework.request import Request
 
 from .tokens import token_generator
+from .zaak_documents import ZaakDocumentsContext
 
 FRONTEND_URL = "/ui/perform-task/{tidb64}/{token}"
 
@@ -33,4 +34,4 @@ class UserTaskLink:
 @dataclass
 class UserTaskData:
     task: Task
-    context: dict
+    context: ZaakDocumentsContext
