@@ -105,7 +105,7 @@ elastic-apm==5.10.1
     # via -r requirements/base.in
 faker==5.7.0
     # via zgw-consumers
-gemma-zds-client==0.13.4
+gemma-zds-client==0.14.0
     # via zgw-consumers
 idna==2.10
     # via requests
@@ -188,7 +188,7 @@ vine==5.0.0
     #   celery
 wcwidth==0.2.5
     # via prompt-toolkit
-zgw-consumers==0.15.1
+zgw-consumers==0.15.2
     # via -r requirements/base.in
 
 # The following packages are considered to be unsafe in a requirements file:

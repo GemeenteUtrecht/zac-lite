@@ -1,37 +1,19 @@
-from dataclasses import dataclass
 from typing import Optional
 from uuid import UUID
 
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from django_camunda.api import get_task
 from django_camunda.camunda_models import Task
 from rest_framework import serializers
-from rest_framework.request import Request
+from zgw_consumers.api_models.catalogi import InformatieObjectType, ZaakType
+from zgw_consumers.api_models.documenten import Document
+from zgw_consumers.api_models.zaken import Zaak
+from zgw_consumers.drf.serializers import APIModelSerializer
 
-from .tokens import token_generator
-
-FRONTEND_URL = "/ui/perform-task/{tidb64}/{token}"
-
-
-@dataclass
-class UserTaskLink:
-    request: Request
-    task: Optional[Task] = None
-
-    @property
-    def task_id(self):
-        return self.task.id
-
-    @property
-    def url(self):
-        assert self.task is not None, "Expected task to be validated and resolved"
-        tidb64 = urlsafe_base64_encode(force_bytes(self.task.id))
-        token = token_generator.make_token(self.task)
-        ui_path = FRONTEND_URL.format(tidb64=tidb64, token=token)
-        return self.request.build_absolute_uri(ui_path)
+from .data import UserTaskData
+from .zaak_documents import ZaakDocumentsContext
 
 
 class UserLinkSerializer(serializers.Serializer):
@@ -64,3 +46,97 @@ class UserLinkSerializer(serializers.Serializer):
             )
         self.instance.task = task
         return value
+
+
+class TaskSerializer(APIModelSerializer):
+    class Meta:
+        model = Task
+        fields = ("id", "name", "assignee", "created")
+        extra_kwargs = {
+            "created": {
+                "default_timezone": timezone.utc,
+            },
+            "assignee": {
+                "allow_null": True,
+            },
+        }
+
+
+class ZaaktypeSerializer(APIModelSerializer):
+    class Meta:
+        model = ZaakType
+        fields = ("omschrijving",)
+
+
+class ZaakSerializer(APIModelSerializer):
+    zaaktype = ZaaktypeSerializer()
+
+    class Meta:
+        model = Zaak
+        fields = ("identificatie", "zaaktype")
+
+
+class DocumentSerializer(APIModelSerializer):
+    class Meta:
+        model = Document
+        fields = (
+            "url",
+            "title",
+            "size",
+            "document_type",
+        )
+        extra_kwargs = {
+            "title": {"source": "titel"},
+            "size": {
+                "source": "bestandsomvang",
+                "help_text": _("File size in bytes"),
+            },
+            "document_type": {
+                "source": "informatieobjecttype",
+                "help_text": _("URL to the informatieobjecttype API resource"),
+            },
+        }
+
+
+class DocumentTypeSerializer(APIModelSerializer):
+    class Meta:
+        model = InformatieObjectType
+        fields = (
+            "url",
+            "omschrijving",
+        )
+
+
+class ZaakDocumentsContextSerializer(APIModelSerializer):
+    zaak = ZaakSerializer()
+    documents = DocumentSerializer(many=True)
+    document_types = DocumentTypeSerializer(many=True)
+
+    class Meta:
+        model = ZaakDocumentsContext
+        fields = ("zaak", "documents", "document_types", "toelichtingen")
+
+
+class UserTaskConfigurationSerializer(APIModelSerializer):
+    form = serializers.CharField(
+        label=_("Form to render"),
+        source="task.form_key",
+        help_text=_("The form key of the form to render."),
+    )
+    task = TaskSerializer(label=_("User task summary"))
+    context = ZaakDocumentsContextSerializer(
+        label=_("User task context"),
+        help_text=_(
+            "The task context shape depends on the `form` property. The value will be "
+            "`null` if the backend does not 'know' the user task `formKey`."
+        ),
+        allow_null=True,
+    )
+
+    class Meta:
+        model = UserTaskData
+        fields = (
+            "form",
+            "task",
+            "context",
+        )
