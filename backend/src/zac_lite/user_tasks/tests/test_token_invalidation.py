@@ -1,6 +1,7 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.test import SimpleTestCase, override_settings
+from django.utils.http import base36_to_int, int_to_base36
 
 from django_camunda.camunda_models import Task, factory
 from django_camunda.utils import underscoreize
@@ -54,6 +55,17 @@ class TokenInvalidationTests(SimpleTestCase):
 
         with freeze_time(timedelta(days=8)):
             valid = token_generator.check_token(task, token)
+
+        self.assertFalse(valid)
+
+    def test_cant_tamper_expired_token(self):
+        task = factory(Task, TASK_DATA)
+        token = token_generator.make_token(task)
+
+        with freeze_time(timedelta(days=8)):
+            ts_b36 = int_to_base36((date.today() - date(2001, 1, 1)).days - 1)
+            _, hash_token = token.split("-")
+            valid = token_generator.check_token(task, f"{ts_b36}-{hash_token}")
 
         self.assertFalse(valid)
 
