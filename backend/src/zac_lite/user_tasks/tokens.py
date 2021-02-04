@@ -97,7 +97,7 @@ class ExecuteTaskTokenGenerator:
             "form_key",
         )
         bits = (str(getattr(task, attribute) or "") for attribute in attributes)
-        return "".join(bits)
+        return "".join(bits) + str(timestamp)
 
     def _num_days(self, dt):
         return (dt - date(2001, 1, 1)).days
