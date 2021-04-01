@@ -120,6 +120,7 @@ INSTALLED_APPS = [
     "zac_lite.accounts",
     "zac_lite.user_tasks",
     "zac_lite.utils",
+    "zac_lite.documents",
 ]
 
 MIDDLEWARE = [
