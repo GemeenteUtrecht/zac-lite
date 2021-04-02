@@ -15,7 +15,7 @@ from zac_lite.api.serializers import ErrorSerializer
 
 from .context import get_context
 from .data import UserTaskData, UserTaskLink
-from .permissions import TokenIsValid
+from .permissions import TOKEN_IN_URL, TokenIsValid
 from .serializers import UserLinkSerializer, UserTaskConfigurationSerializer
 
 
@@ -58,6 +58,7 @@ class GetTaskConfigurationView(APIView):
     authentication_classes = ()
     permission_classes = (TokenIsValid,)
     serializer_class = UserTaskConfigurationSerializer
+    token_location = TOKEN_IN_URL
 
     @extend_schema(
         responses={
