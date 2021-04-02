@@ -16,6 +16,7 @@ urlpatterns = [
         "v1/",
         include(
             [
+                path("files", include("zac_lite.documents.api.urls")),
                 path("", include("zac_lite.user_tasks.urls")),
             ]
         ),
