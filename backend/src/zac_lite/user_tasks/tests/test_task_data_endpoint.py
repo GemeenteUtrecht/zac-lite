@@ -8,7 +8,7 @@ from django_camunda.camunda_models import Task, factory
 from django_camunda.utils import serialize_variable, underscoreize
 from rest_framework import status
 from rest_framework.reverse import reverse
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APITransactionTestCase
 from zgw_consumers.constants import APITypes
 from zgw_consumers.models import Service
 from zgw_consumers.test import generate_oas_component, mock_service_oas_get
@@ -147,14 +147,14 @@ def get_zio(zaak: str, io: str):
     )
 
 
-class ZaakDocumentsFormKeyTests(APITestCase):
+class ZaakDocumentsFormKeyTests(APITransactionTestCase):
     """
     Test the endpoint behaviour specifically for the zac-lite:zaak-documents form key.
     """
 
     @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
+    def setUpClass(cls):
+        super().setUpClass()
 
         Service.objects.create(
             label="Zaken API",
