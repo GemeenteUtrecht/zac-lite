@@ -93,9 +93,9 @@ defusedxml==0.6.0
     #   django-camunda
 django-admin-index==1.4.0
     # via -r requirements/ci.txt
-django-auth-adfs-db==0.2.0
+django-auth-adfs-db==0.3.0
     # via -r requirements/ci.txt
-django-auth-adfs==1.5.0
+django-auth-adfs==1.6.1
     # via
     #   -r requirements/ci.txt
     #   django-auth-adfs-db
@@ -152,7 +152,7 @@ django-solo==1.1.5
     #   zgw-consumers
 django-webtest==1.9.7
     # via -r requirements/ci.txt
-django==2.2.17
+django==2.2.20
     # via
     #   -r requirements/ci.txt
     #   ddt-api-calls
