@@ -7,6 +7,7 @@ from django_camunda.camunda_models import Task
 from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, status
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -15,8 +16,13 @@ from zac_lite.api.serializers import ErrorSerializer
 
 from .context import get_context
 from .data import UserTaskData, UserTaskLink
-from .permissions import TOKEN_IN_URL, TokenIsValid
-from .serializers import UserLinkSerializer, UserTaskConfigurationSerializer
+from .parsers import NoUnderscoreBeforeNumberCamelCaseJSONParser
+from .permissions import TOKEN_IN_BODY, TOKEN_IN_URL, TokenIsValid
+from .serializers import (
+    SubmitUserTaskSerializer,
+    UserLinkSerializer,
+    UserTaskConfigurationSerializer,
+)
 
 
 class UserLinkCreateView(APIView):
@@ -85,4 +91,42 @@ class GetTaskConfigurationView(APIView):
             )
         # May raise a permission denied
         self.check_object_permissions(self.request, task)
+        return task
+
+
+class SubmitUserTaskView(APIView):
+    authentication_classes = ()
+    permission_classes = (TokenIsValid,)
+    token_location = TOKEN_IN_BODY
+    serializer_class = SubmitUserTaskSerializer
+    parser_classes = (NoUnderscoreBeforeNumberCamelCaseJSONParser,)
+
+    def post(self, request: Request) -> Response:
+        task = self.get_object()
+        task_context = get_context(task)
+
+        serializer = self.serializer_class(
+            data=request.data, context={"task_context": task_context}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        # Create the new documents
+
+        # Update existing documents
+
+        # Complete user task in Camunda API
+
+        return Response(status=status.HTTP_201_CREATED)
+
+    def get_object(self) -> Task:
+        task_id = force_str(urlsafe_base64_decode(self.request.data["tidb64"]))
+        task = get_task(task_id, check_history=False)
+
+        if task is None:
+            raise ValidationError(
+                _("The task with given task ID does not exist (anymore).")
+            )
+
+        self.check_object_permissions(self.request, task)
+
         return task
