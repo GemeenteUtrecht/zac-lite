@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.utils.http import urlsafe_base64_encode
 
 import requests_mock
@@ -11,6 +13,7 @@ from zgw_consumers.models import Service
 from zgw_consumers.test import generate_oas_component, mock_service_oas_get
 
 # Taken from https://docs.camunda.org/manual/7.13/reference/rest/task/get/
+from ...documents.models import DocumentServiceConfig
 from ...documents.tests.factories import UploadedDocumentFactory
 from ..tokens import token_generator
 
@@ -38,8 +41,8 @@ TASK_DATA = {
     "tenantId": "aTenantId",
 }
 
-OPENZAAK_BASE = "https://openzaak.utrechtproeftuin.nl"
-DRC_BASE = "https://drc.utrechtproeftuin.nl/api/v1"
+OPENZAAK_BASE = "https://openzaak.nl"
+DRC_BASE = "https://drc.nl/api/v1"
 CAMUNDA_BASE = "https://camunda.example.com/engine-rest"
 
 IOT_1 = generate_oas_component(
@@ -335,7 +338,9 @@ class SubmitUserTaskValidationTests(APITransactionTestCase):
             response_data["replacedDocuments"],
         )
 
-    def test_valid_data(self):
+    @patch("zac_lite.user_tasks.views.SubmitUserTaskView.create_new_documents")
+    @patch("zac_lite.user_tasks.views.SubmitUserTaskView.update_documents")
+    def test_valid_data(self, mock_create_new_docs, mock_update_docs):
         self._set_up_services()
 
         tidb64 = urlsafe_base64_encode(b"3764fa19-4246-4360-a311-784907f5bd11")
@@ -362,4 +367,101 @@ class SubmitUserTaskValidationTests(APITransactionTestCase):
                 },
             )
 
-        self.assertEqual(status.HTTP_201_CREATED, response.status_code)
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+
+
+class SubmitUserTaskTests(APITransactionTestCase):
+    def _set_up_services(self):
+        Service.objects.create(
+            label="Zaken API",
+            api_root=f"{OPENZAAK_BASE}/zaken/api/v1/",
+            api_type=APITypes.zrc,
+        )
+        Service.objects.create(
+            label="Catalogi API",
+            api_root=f"{OPENZAAK_BASE}/catalogi/api/v1/",
+            api_type=APITypes.ztc,
+        )
+        Service.objects.create(
+            label="Documenten API",
+            api_root=DRC_BASE,
+            api_type=APITypes.drc,
+        )
+
+    def _set_up_mocks(self, m, task):
+        mock_service_oas_get(m, f"{OPENZAAK_BASE}/zaken/api/v1/", "zrc")
+        mock_service_oas_get(m, f"{OPENZAAK_BASE}/catalogi/api/v1/", "ztc")
+        mock_service_oas_get(m, f"{DRC_BASE}/", "drc")
+
+        m.get(
+            f"{CAMUNDA_BASE}/task/3764fa19-4246-4360-a311-784907f5bd11",
+            json=TASK_DATA,
+        )
+        m.get(
+            f"{CAMUNDA_BASE}/task/{task.id}/variables/zaakUrl?deserializeValues=false",
+            json=serialize_variable(ZAAK["url"]),
+        )
+        m.get(
+            f"{CAMUNDA_BASE}/task/{task.id}/variables/toelichtingen?deserializeValues=false",
+            json=serialize_variable("Voorbeeld toelichting."),
+        )
+        m.get(ZAAK["url"], json=ZAAK)
+        m.get(ZAAKTYPE["url"], json=ZAAKTYPE)
+        m.get(
+            f"{OPENZAAK_BASE}/zaken/api/v1/zaakinformatieobjecten?zaak={ZAAK['url']}",
+            json=[ZIO_1, ZIO_2],
+        )
+        m.get(DOCUMENT_1["url"], json=DOCUMENT_1)
+        m.get(DOCUMENT_2["url"], json=DOCUMENT_2)
+        m.get(IOT_1["url"], json=IOT_1)
+
+    def test_valid_data(self):
+        self._set_up_services()
+
+        drc_service = Service.objects.get(
+            label="Documenten API",
+        )
+
+        config = DocumentServiceConfig.get_solo()
+        config.primary_drc = drc_service
+        config.save()
+
+        tidb64 = urlsafe_base64_encode(b"3764fa19-4246-4360-a311-784907f5bd11")
+        task = factory(Task, underscoreize(TASK_DATA))
+        token = token_generator.make_token(task)
+
+        document_1 = UploadedDocumentFactory.create(task_id=task.id)
+        document_2 = UploadedDocumentFactory.create(task_id=task.id)
+
+        with requests_mock.Mocker() as m:
+            self._set_up_mocks(m, task)
+
+            m.post(
+                f"{DRC_BASE}/enkelvoudiginformatieobjecten",
+                status_code=201,
+                json={
+                    "url": f"{OPENZAAK_BASE}/enkelvoudiginformatieobjecten/9b9ec79d-5e04-4112-a6d1-5314cdbd172e"
+                },
+            )
+
+            m.put(
+                DOCUMENT_1["url"],
+                status_code=200,
+                json={"url": DOCUMENT_1["url"]},
+            )
+
+            response = self.client.post(
+                reverse("submit-user-task"),
+                data={
+                    "tidb64": tidb64,
+                    "token": token,
+                    "newDocuments": [
+                        {"id": document_1.uuid, "documentType": IOT_1["url"]}
+                    ],
+                    "replacedDocuments": [
+                        {"id": document_2.uuid, "old": DOCUMENT_1["url"]}
+                    ],
+                },
+            )
+
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
