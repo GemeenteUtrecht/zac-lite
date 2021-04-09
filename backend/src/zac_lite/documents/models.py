@@ -4,6 +4,8 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from privates.fields import PrivateMediaFileField
+from solo.models import SingletonModel
+from zgw_consumers.constants import APITypes
 
 
 class UploadedDocument(models.Model):
@@ -34,3 +36,21 @@ class UploadedDocument(models.Model):
 
     def __str__(self):
         return self.file_name
+
+
+class DocumentServiceConfig(SingletonModel):
+    primary_drc = models.ForeignKey(
+        "zgw_consumers.Service",
+        null=True,
+        on_delete=models.SET_NULL,
+        limit_choices_to={"api_type": APITypes.drc},
+        verbose_name=_("primary DRC"),
+        help_text=_("Document API where new documents will be created."),
+    )
+
+    class Meta:
+        verbose_name = _("document serivce configuration")
+        verbose_name_plural = _("document serivce configurations")
+
+    def __str__(self):
+        return "Default document service configuration"
