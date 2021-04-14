@@ -6,7 +6,7 @@ from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from django.utils.translation import gettext_lazy as _
 
-from django_camunda.api import get_task
+from django_camunda.api import complete_task, get_task
 from django_camunda.camunda_models import Task
 from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, status
@@ -125,7 +125,14 @@ class SubmitUserTaskView(APIView):
             serializer.validated_data["replaced_documents"]
         )
 
-        # Complete user task in Camunda API
+        # Complete Camunda user task
+        complete_task(
+            task_id=task.id,
+            variables={
+                "updated_documents": updated_documents,
+                "new_documents": new_documents,
+            },
+        )
 
         return Response(status=status.HTTP_200_OK)
 
