@@ -1,5 +1,6 @@
 import base64
 from datetime import date
+from itertools import repeat
 from typing import List
 
 from django.utils.encoding import force_str
@@ -15,6 +16,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from zgw_consumers.client import ZGWClient
+from zgw_consumers.concurrent import parallel
 from zgw_consumers.models import Service
 
 from zac_lite.api.serializers import ErrorSerializer
@@ -149,7 +152,6 @@ class SubmitUserTaskView(APIView):
 
         return task
 
-    # TODO parallelise
     def create_new_documents(
         self, documents: List, task_context: ZaakDocumentsContext
     ) -> List[str]:
@@ -160,48 +162,54 @@ class SubmitUserTaskView(APIView):
 
         client = default_document_service.build_client()
 
-        new_documents_urls = []
-
-        for document in documents:
-            uploaded_document = UploadedDocument.objects.get(uuid=document["id"])
-            document_data = {
-                "informatieobjecttype": document["document_type"],
-                "bronorganisatie": task_context.zaak.bronorganisatie,
-                "creatiedatum": date.today().isoformat(),
-                "titel": uploaded_document.file_name,
-                # TODO: maybe the author should be an extra field of the UploadedDocument
-                "auteur": task_context.zaak.bronorganisatie,
-                "taal": "nld",
-                "inhoud": base64.b64encode(uploaded_document.content.read()).decode(
-                    "ascii"
-                ),
-            }
-            new_document = client.create(
-                resource="enkelvoudiginformatieobject", data=document_data
+        with parallel() as executor:
+            new_documents_urls = executor.map(
+                self._create_document, documents, repeat(task_context), repeat(client)
             )
-            new_documents_urls.append(new_document["url"])
 
-        return new_documents_urls
+        return list(new_documents_urls)
 
-    # TODO parallelise
     def update_documents(self, documents: List) -> List[str]:
+        with parallel() as executor:
+            updated_documents_urls = executor.map(self._update_document, documents)
 
-        updated_documents_urls = []
+        return list(updated_documents_urls)
 
-        for document in documents:
-            client = Service.get_client(document["old"])
+    def _create_document(
+        self, document_data: dict, task_context: dict, client: ZGWClient
+    ):
+        uploaded_document = UploadedDocument.objects.get(uuid=document_data["id"])
 
-            uploaded_document = UploadedDocument.objects.get(uuid=document["id"])
-            document_data = {
-                "titel": uploaded_document.file_name,
-                "inhoud": base64.b64encode(uploaded_document.content.read()).decode(
-                    "ascii"
-                ),
-            }
+        data = {
+            "informatieobjecttype": document_data["document_type"],
+            "bronorganisatie": task_context.zaak.bronorganisatie,
+            "creatiedatum": date.today().isoformat(),
+            "titel": uploaded_document.file_name,
+            # TODO: maybe the author should be an extra field of the UploadedDocument
+            "auteur": task_context.zaak.bronorganisatie,
+            "taal": "nld",
+            "inhoud": base64.b64encode(uploaded_document.content.read()).decode(
+                "ascii"
+            ),
+        }
 
-            updated_document = client.update(
-                "enkelvoudiginformatieobject", url=document["old"], data=document_data
-            )
-            updated_documents_urls.append(updated_document["url"])
+        new_document = client.create(resource="enkelvoudiginformatieobject", data=data)
 
-        return updated_documents_urls
+        return new_document["url"]
+
+    def _update_document(self, document_data: dict):
+        client = Service.get_client(document_data["old"])
+
+        uploaded_document = UploadedDocument.objects.get(uuid=document_data["id"])
+        data = {
+            "titel": uploaded_document.file_name,
+            "inhoud": base64.b64encode(uploaded_document.content.read()).decode(
+                "ascii"
+            ),
+        }
+
+        updated_document = client.update(
+            "enkelvoudiginformatieobject", url=document_data["old"], data=data
+        )
+
+        return updated_document["url"]
