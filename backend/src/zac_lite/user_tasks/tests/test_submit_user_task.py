@@ -340,7 +340,8 @@ class SubmitUserTaskValidationTests(APITransactionTestCase):
 
     @patch("zac_lite.user_tasks.views.SubmitUserTaskView.create_new_documents")
     @patch("zac_lite.user_tasks.views.SubmitUserTaskView.update_documents")
-    def test_valid_data(self, mock_create_new_docs, mock_update_docs):
+    @patch("zac_lite.user_tasks.views.complete_task")
+    def test_valid_data(self, mock_create_new_docs, mock_update_docs, mock_camunda):
         self._set_up_services()
 
         tidb64 = urlsafe_base64_encode(b"3764fa19-4246-4360-a311-784907f5bd11")
@@ -443,13 +444,14 @@ class SubmitUserTaskTests(APITransactionTestCase):
                     "url": f"{OPENZAAK_BASE}/enkelvoudiginformatieobjecten/9b9ec79d-5e04-4112-a6d1-5314cdbd172e"
                 },
             )
-
             m.put(
                 DOCUMENT_1["url"],
                 status_code=200,
                 json={"url": DOCUMENT_1["url"]},
             )
-
+            m.post(
+                f"{CAMUNDA_BASE}/task/{task.id}/complete",
+            )
             response = self.client.post(
                 reverse("submit-user-task"),
                 data={
