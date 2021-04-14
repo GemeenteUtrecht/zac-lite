@@ -120,6 +120,7 @@ INSTALLED_APPS = [
     "zac_lite.accounts",
     "zac_lite.user_tasks",
     "zac_lite.utils",
+    "zac_lite.documents",
 ]
 
 MIDDLEWARE = [
@@ -188,6 +189,16 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
 
 FILE_UPLOAD_PERMISSIONS = 0o644
+
+#
+# DJANGO-PRIVATES -- safely serve files after authorization
+#
+PRIVATE_MEDIA_ROOT = os.path.join(BASE_DIR, "private-media")
+PRIVATE_MEDIA_URL = "/private-media/"
+# requires an nginx container running in front
+SENDFILE_BACKEND = config("SENDFILE_BACKEND", "django_sendfile.backends.nginx")
+SENDFILE_ROOT = PRIVATE_MEDIA_ROOT
+SENDFILE_URL = PRIVATE_MEDIA_URL
 
 #
 # Sending EMAIL

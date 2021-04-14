@@ -32,3 +32,6 @@ local.py
 # Static files
 src/zac_lite/static/bundles/
 src/zac_lite/fonts/
+
+# Private media
+private-media/
