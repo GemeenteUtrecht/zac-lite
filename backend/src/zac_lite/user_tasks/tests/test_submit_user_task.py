@@ -416,6 +416,22 @@ class SubmitUserTaskTests(APITransactionTestCase):
         m.get(DOCUMENT_2["url"], json=DOCUMENT_2)
         m.get(IOT_1["url"], json=IOT_1)
 
+        m.post(
+            f"{DRC_BASE}/enkelvoudiginformatieobjecten",
+            status_code=201,
+            json={
+                "url": f"{OPENZAAK_BASE}/enkelvoudiginformatieobjecten/9b9ec79d-5e04-4112-a6d1-5314cdbd172e"
+            },
+        )
+        m.put(
+            DOCUMENT_1["url"],
+            status_code=200,
+            json={"url": DOCUMENT_1["url"]},
+        )
+        m.post(
+            f"{CAMUNDA_BASE}/task/{task.id}/complete",
+        )
+
     def test_valid_data(self):
         self._set_up_services()
 
@@ -437,21 +453,6 @@ class SubmitUserTaskTests(APITransactionTestCase):
         with requests_mock.Mocker() as m:
             self._set_up_mocks(m, task)
 
-            m.post(
-                f"{DRC_BASE}/enkelvoudiginformatieobjecten",
-                status_code=201,
-                json={
-                    "url": f"{OPENZAAK_BASE}/enkelvoudiginformatieobjecten/9b9ec79d-5e04-4112-a6d1-5314cdbd172e"
-                },
-            )
-            m.put(
-                DOCUMENT_1["url"],
-                status_code=200,
-                json={"url": DOCUMENT_1["url"]},
-            )
-            m.post(
-                f"{CAMUNDA_BASE}/task/{task.id}/complete",
-            )
             response = self.client.post(
                 reverse("submit-user-task"),
                 data={
@@ -481,6 +482,10 @@ class SubmitUserTaskTests(APITransactionTestCase):
         with requests_mock.Mocker() as m:
             self._set_up_mocks(m, task)
 
+            m.post(
+                f"{CAMUNDA_BASE}/task/{task.id}/failure",
+            )
+
             with self.assertRaises(
                 RuntimeError, msg="No default DRC service configured."
             ):
@@ -496,4 +501,57 @@ class SubmitUserTaskTests(APITransactionTestCase):
                             {"id": document_2.uuid, "old": DOCUMENT_1["url"]}
                         ],
                     },
+                )
+
+            self.assertEqual(
+                m.request_history[-1].url, f"{CAMUNDA_BASE}/task/{task.id}/failure"
+            )
+
+    @patch("zac_lite.user_tasks.views.SubmitUserTaskView.update_documents")
+    def test_error_in_document_creation_marks_task_as_failed(
+        self, mock_update_documents
+    ):
+        mock_update_documents.raiseError.side_effect = Exception("Test exception")
+
+        self._set_up_services()
+
+        drc_service = Service.objects.get(
+            label="Documenten API",
+        )
+
+        config = DocumentServiceConfig.get_solo()
+        config.primary_drc = drc_service
+        config.save()
+
+        tidb64 = urlsafe_base64_encode(b"3764fa19-4246-4360-a311-784907f5bd11")
+        task = factory(Task, underscoreize(TASK_DATA))
+        token = token_generator.make_token(task)
+
+        document_1 = UploadedDocumentFactory.create(task_id=task.id)
+        document_2 = UploadedDocumentFactory.create(task_id=task.id)
+
+        with requests_mock.Mocker() as m:
+            self._set_up_mocks(m, task)
+
+            with self.assertRaises(Exception, msg="Test exception"):
+                self.client.post(
+                    reverse("submit-user-task"),
+                    data={
+                        "tidb64": tidb64,
+                        "token": token,
+                        "newDocuments": [
+                            {"id": document_1.uuid, "documentType": IOT_1["url"]}
+                        ],
+                        "replacedDocuments": [
+                            {"id": document_2.uuid, "old": DOCUMENT_1["url"]}
+                        ],
+                    },
+                )
+
+                m.post(
+                    f"{CAMUNDA_BASE}/task/{task.id}/failure",
+                )
+
+                self.assertEqual(
+                    m.request_history[-1].url, f"{CAMUNDA_BASE}/task/{task.id}/failure"
                 )
