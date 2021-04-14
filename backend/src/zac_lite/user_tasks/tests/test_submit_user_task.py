@@ -467,3 +467,33 @@ class SubmitUserTaskTests(APITransactionTestCase):
             )
 
         self.assertEqual(status.HTTP_200_OK, response.status_code)
+
+    def test_no_default_drc_configured(self):
+        self._set_up_services()
+
+        tidb64 = urlsafe_base64_encode(b"3764fa19-4246-4360-a311-784907f5bd11")
+        task = factory(Task, underscoreize(TASK_DATA))
+        token = token_generator.make_token(task)
+
+        document_1 = UploadedDocumentFactory.create(task_id=task.id)
+        document_2 = UploadedDocumentFactory.create(task_id=task.id)
+
+        with requests_mock.Mocker() as m:
+            self._set_up_mocks(m, task)
+
+            with self.assertRaises(
+                RuntimeError, msg="No default DRC service configured."
+            ):
+                self.client.post(
+                    reverse("submit-user-task"),
+                    data={
+                        "tidb64": tidb64,
+                        "token": token,
+                        "newDocuments": [
+                            {"id": document_1.uuid, "documentType": IOT_1["url"]}
+                        ],
+                        "replacedDocuments": [
+                            {"id": document_2.uuid, "old": DOCUMENT_1["url"]}
+                        ],
+                    },
+                )
