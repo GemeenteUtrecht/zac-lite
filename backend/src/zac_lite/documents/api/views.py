@@ -7,15 +7,12 @@ from django.utils.translation import gettext_lazy as _
 from django_camunda.api import get_task
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from zac_lite.documents.api.serializers import (
-    TaskDataSerializer,
-    UploadedDocumentSerializer,
-)
+from zac_lite.documents.api.serializers import UploadedDocumentSerializer
 from zac_lite.user_tasks.permissions import TOKEN_IN_BODY, TokenIsValid
 
 
@@ -32,20 +29,18 @@ class UploadDocumentView(APIView):
     """
 
     schema_summary = _("Upload a temporary document")
-    serializer_class = TaskDataSerializer
+    serializer_class = UploadedDocumentSerializer
     authentication_classes = ()
     permission_classes = (TokenIsValid,)
-    parser_classes = (MultiPartParser,)
+    parser_classes = (
+        FormParser,
+        MultiPartParser,
+    )
     token_location = TOKEN_IN_BODY
 
     def post(self, request: Request) -> Response:
-        task_data_serializer = self.serializer_class(data=request.data)
-        task_data_serializer.is_valid(raise_exception=True)
-
         # Check task permissions with token
-        validated_task_id = self.check_task_permissions(
-            request, task_data_serializer.validated_data["tidb64"]
-        )
+        validated_task_id = self.check_task_permissions(request, request.data["tidb64"])
 
         # Store uploaded document
         document_uuid = uuid.uuid4()
@@ -53,9 +48,8 @@ class UploadDocumentView(APIView):
         document_serializer = UploadedDocumentSerializer(
             data={
                 "uuid": document_uuid,
-                "file_name": task_data_serializer.validated_data["file"].name,
                 "task_id": validated_task_id,
-                "content": task_data_serializer.validated_data["file"],
+                "content": request.FILES.get("file"),
             }
         )
         document_serializer.is_valid(raise_exception=True)
