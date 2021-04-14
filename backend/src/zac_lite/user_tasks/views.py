@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 
 from django_camunda.api import complete_task, get_task
 from django_camunda.camunda_models import Task
+from django_camunda.client import get_client
 from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, status
 from rest_framework.authentication import TokenAuthentication
@@ -120,22 +121,30 @@ class SubmitUserTaskView(APIView):
         )
         serializer.is_valid(raise_exception=True)
 
-        new_documents = self.create_new_documents(
-            serializer.validated_data["new_documents"], task_context
-        )
-
-        updated_documents = self.update_documents(
-            serializer.validated_data["replaced_documents"]
-        )
-
-        # Complete Camunda user task
-        complete_task(
-            task_id=task.id,
-            variables={
-                "updated_documents": updated_documents,
-                "new_documents": new_documents,
-            },
-        )
+        try:
+            new_documents = self.create_new_documents(
+                serializer.validated_data["new_documents"], task_context
+            )
+            updated_documents = self.update_documents(
+                serializer.validated_data["replaced_documents"]
+            )
+        except Exception as exc:
+            # Mark Camunda task as failure
+            client = get_client()
+            client.post(
+                f"task/{task.id}/failure",
+                json={"error_message": "Failed to create/update the documents"},
+            )
+            raise exc
+        else:
+            # Complete Camunda task
+            complete_task(
+                task_id=task.id,
+                variables={
+                    "updated_documents": updated_documents,
+                    "new_documents": new_documents,
+                },
+            )
 
         return Response(status=status.HTTP_200_OK)
 
